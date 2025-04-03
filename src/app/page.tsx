@@ -1,103 +1,64 @@
-import Image from "next/image";
+import PostCard from '@/components/PostCard';
+import { getAllPosts } from '@/lib/posts';
+import Link from 'next/link';
 
 export default function Home() {
+  const posts = getAllPosts();
+  const featuredPosts = posts.slice(0, 3); // 显示最新的3篇文章
+  
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="max-w-4xl mx-auto">
+      {/* 英雄区 */}
+      <section className="cyber-box mb-12 py-10 px-4 text-center">
+        <h1 className="text-4xl md:text-6xl font-bold mb-4 text-[#00FF41]">
+          <span className="inline-block animate-pulse">Cyber_Blog</span>
+        </h1>
+        <p className="text-[#008F11] text-lg md:text-xl mb-6">
+          探索数字世界的边缘，连接赛博空间的思想
+        </p>
+        <div className="cyber-grid p-4 inline-block">
+          <code className="text-[#00FF41]">
+            $ echo &ldquo;欢迎来到我的赛博世界...&rdquo;
+          </code>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </section>
+
+      {/* 最新文章 */}
+      <section className="mb-12">
+        <div className="flex items-center mb-6">
+          <h2 className="text-2xl font-bold text-[#00FF41]">最新文章</h2>
+          <div className="h-[2px] flex-grow ml-4 bg-[#008F11]"></div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {featuredPosts.map((post) => (
+            <PostCard key={post.slug} post={post} />
+          ))}
+        </div>
+      </section>
+      
+      {/* 关于博客 */}
+      <section className="cyber-box">
+        <h2 className="text-2xl font-bold text-[#00FF41] mb-4">关于本站</h2>
+        <p className="text-[#00FF41] mb-4">
+          这是一个使用Next.js构建的静态博客，支持Markdown编写文章，托管在GitHub Pages上。
+          博客采用赛博朋克风格设计，致力于分享技术、艺术和数字文化的内容。
+        </p>
+        <div className="flex space-x-4 mt-6">
+          <Link 
+            href="/posts" 
+            className="cyber-button"
+          >
+            浏览全部文章
+          </Link>
+          <Link 
+            href="/about" 
+            className="cyber-button"
+          >
+            了解更多
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

@@ -1,26 +1,50 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0D0208;
+  --foreground: #00FF41;
+  --accent: #008F11;
+  --highlight: #FF00FF;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+.cyber-box {
+  position: relative;
+  border: 2px solid #008F11;
+  background-color: #0D0208;
+  padding: 1rem;
+  box-shadow: 0 0 10px #00FF41, inset 0 0 5px #00FF41;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.cyber-button {
+  background-color: #0D0208;
+  color: #00FF41;
+  border: 2px solid #008F11;
+  padding: 0.5rem 1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 5px #00FF41;
+}
+
+.cyber-button:hover {
+  background-color: rgba(13, 2, 8, 0.8);
+  box-shadow: 0 0 10px #00FF41, inset 0 0 5px #00FF41;
+}
+
+.cyber-grid {
+  background-size: 50px 50px;
+  background-image: 
+    linear-gradient(to right, rgba(0, 255, 65, 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 255, 65, 0.1) 1px, transparent 1px);
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Courier New', Courier, monospace;
+  background-image: 
+    radial-gradient(rgba(0, 255, 65, 0.1) 1px, transparent 1px),
+    radial-gradient(rgba(0, 255, 65, 0.15) 1px, transparent 1px);
+  background-size: 50px 50px;
+  background-position: 0 0, 25px 25px;
 }
