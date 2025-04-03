@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:gh-pages": "next build && node fix-html-paths.js",
     "start": "next start",
     "lint": "next lint"
   },
