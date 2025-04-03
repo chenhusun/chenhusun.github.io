@@ -6,6 +6,8 @@ const nextConfig = {
     unoptimized: true,
   },
   basePath: process.env.NODE_ENV === 'production' ? '/blog' : '',
+  assetPrefix: process.env.NODE_ENV === 'production' ? '/blog' : '',
+  trailingSlash: true,
   typescript: {
     // 禁用TypeScript错误检查以允许构建成功
     ignoreBuildErrors: true,

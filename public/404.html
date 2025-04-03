@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>重定向中...</title>
+  <script>
+    // 单页应用重定向脚本
+    const segment = 1; // 调整这个值以匹配你的仓库名：如果是username.github.io则为0，如果是username.github.io/blog则为1
+    
+    const l = window.location;
+    const repo = l.pathname.split('/')[segment];
+    const restOfPath = l.pathname.slice(
+      segment === 0 ? 0 : l.pathname.indexOf('/', 1) + 1
+    );
+    
+    // 保存原始路径到sessionStorage
+    sessionStorage.setItem('redirect', restOfPath);
+    
+    // 重定向到主页
+    window.location.replace(
+      l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') + 
+      '/' + (segment === 0 ? '' : repo + '/') 
+    );
+  </script>
+  <style>
+    body {
+      font-family: 'Courier New', Courier, monospace;
+      background-color: #0D0208;
+      color: #00FF41;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      text-align: center;
+    }
+    .container {
+      border: 2px solid #008F11;
+      padding: 2rem;
+      box-shadow: 0 0 10px #00FF41, inset 0 0 5px #00FF41;
+      max-width: 80%;
+    }
+    h1 {
+      color: #00FF41;
+    }
+    .blink {
+      animation: blink 1s infinite;
+    }
+    @keyframes blink {
+      0% { opacity: 1; }
+      50% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>404 - 页面未找到</h1>
+    <p>正在重定向到首页... <span class="blink">_</span></p>
+  </div>
+</body>
+</html> 
