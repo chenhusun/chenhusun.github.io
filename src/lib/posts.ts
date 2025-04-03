@@ -15,7 +15,13 @@ export type Post = {
   htmlContent: string;
 };
 
-export function getAllPostSlugs() {
+export type PostSlug = {
+  params: {
+    slug: string;
+  }
+};
+
+export function getAllPostSlugs(): PostSlug[] {
   const fileNames = fs.readdirSync(postsDirectory);
   return fileNames.map(fileName => {
     return {

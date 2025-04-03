@@ -2,7 +2,7 @@ import { getPostBySlug, getAllPostSlugs } from '@/lib/posts';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-export async function generateStaticParams() {
+export async function generateStaticParams(): Promise<{ slug: string }[]> {
   const posts = getAllPostSlugs();
   return posts.map((post) => ({
     slug: post.params.slug,
