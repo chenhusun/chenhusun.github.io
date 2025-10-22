@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<title>仿 TradingView 5m K 线飞升演示</title>
+	<style>
+		/* 基本界面（白底风格） */
+		html,body {height:100%;margin:0;background:#ffffff;color:#0b1220;font-family:Inter,Segoe UI,Arial; }
+		.container {display:flex;flex-direction:column;height:100vh;padding:8px;box-sizing:border-box;}
+		.toolbar {height:44px;display:flex;align-items:center;gap:8px;padding:6px;border-radius:6px;background:linear-gradient(180deg,#f6f8fa,#eef3f7);box-shadow:0 1px 0 rgba(0,0,0,0.04) inset;}
+		.brand {display:flex;align-items:center;gap:10px;}
+		/* logo 放大为当前的 200% */
+		.brand-logo {height:56px;width:auto;display:block;transform-origin:left center;}
+		.brand-text {display:flex;flex-direction:column;line-height:1;}
+		.ticker {font-weight:700;font-size:13px;color:#0b1220;}
+		.brand-sub {font-size:12px;color:#4b5563;}
+		.controls {margin-left:auto;display:flex;gap:8px;align-items:center;}
+		.btn {background:#f3f6f9;border:1px solid #e6edf3;color:#0b1220;padding:6px 10px;border-radius:4px;cursor:pointer;}
+		.btn:active{transform:translateY(1px);}
+		.info {font-size:12px;opacity:0.85;padding-left:8px;color:#374151;}
+		.chart-wrap {flex:1;display:flex;gap:8px;margin-top:8px;min-height:0;}
+		.sidebar {width:64px;background:linear-gradient(180deg,#f7f9fb,#f1f5f8);border-radius:6px;padding:8px;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;align-items:center;}
+		.canvas-area {flex:1;position:relative;background:linear-gradient(180deg,#ffffff,#fafafa);border-radius:6px;padding:8px;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;}
+		.chart-canvas {width:100%;height:100%;display:block;border-radius:4px;background:transparent;}
+		.bottom-bar {height:86px;display:flex;gap:8px;margin-top:8px;align-items:center;}
+		.control-row {display:flex;gap:8px;align-items:center;}
+		.range {width:180px;}
+		.small {font-size:12px;color:#6b7280}
+		.legend {position:absolute;left:16px;top:12px;background:rgba(255,255,255,0.95);padding:6px 8px;border-radius:6px;font-size:12px;color:#0b1220;box-shadow:0 6px 16px rgba(15,23,42,0.06);}
+	</style>
+</head>
+<body>
+	<div class="container">
+		<div class="toolbar">
+			<div class="brand">
+				<img src="logo.svg" alt="logo" class="brand-logo">
+				<div class="brand-text">
+					<div class="ticker">NVST</div>
+					<div class="brand-sub">5m • USD</div>
+				</div>
+			</div>
+			<div class="info">模拟 5 分钟 K 线 · 起点 20 USD 横盘 → 飞升（带缩放动画）</div>
+			<div class="controls">
+				<button id="playBtn" class="btn">播放</button>
+				<button id="resetBtn" class="btn">重置</button>
+				<div class="small">速度</div>
+				<input id="speedRange" type="range" min="0.25" max="3" step="0.25" value="1" class="range">
+			</div>
+		</div>
+
+		<div class="chart-wrap">
+			<div class="sidebar">
+				<div class="small">Timeframe</div>
+				<div class="btn">5m</div>
+				<div style="height:8px"></div>
+				<div class="small">Price</div>
+				<div class="small">USD</div>
+			</div>
+
+			<div class="canvas-area">
+				<div class="legend" id="legend">Price: -- &nbsp; | &nbsp; Vol: --</div>
+				<canvas id="chart" class="chart-canvas"></canvas>
+			</div>
+		</div>
+
+		<div class="bottom-bar">
+			<div class="control-row">
+				<div class="small">说明：</div>
+				<div class="small">前期横盘 20 USD，随后出现一轮快速放量拉升，图表同时进行缩放以拟真显示。</div>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		// 简化版 K 线动画引擎（canvas），生成 OHLC 数据并在动画中展示飞升和缩放
+		// filepath: d:\code\trae\stock\index.html
+		(() => {
+			const SYMBOL = 'NVST';
+			const canvas = document.getElementById('chart');
+			const ctx = canvas.getContext('2d');
+			let DPR = window.devicePixelRatio || 1;
+
+			function resize() {
+				const rect = canvas.getBoundingClientRect();
+				canvas.width = Math.round(rect.width * DPR);
+				canvas.height = Math.round(rect.height * DPR);
+				ctx.setTransform(DPR,0,0,DPR,0,0);
+				draw(); // redraw on resize
+			}
+			window.addEventListener('resize', resize);
+
+			// 参数
+			const totalCandles = 130;
+			const flatCount = 40;    // 横盘数量（20 USD）
+			const surgeCount = 70;   // 飞升过程数量
+			const tailCount = totalCandles - flatCount - surgeCount;
+			const timeframe = 5; // 分钟
+			const basePrice = 20;
+			const candleWidthPx = 8;
+			let speed = 1;
+
+			// 状态
+			let data = [];
+			let play = false;
+			let revealIndex = 0;
+			let lastTimestamp = 0;
+
+			// scaling state
+			let xScale = 1; // horizontal compression (1 normal, <1 更压缩更多蜡烛在视野)
+			let yScaleFactor = 1; // >1 表示放大纵向（价格区间更广）
+
+			const legend = document.getElementById('legend');
+			const playBtn = document.getElementById('playBtn');
+			const resetBtn = document.getElementById('resetBtn');
+			const speedRange = document.getElementById('speedRange');
+
+			playBtn.onclick = () => {
+				play = !play;
+				playBtn.textContent = play ? '暂停' : '播放';
+				if (play) requestAnimationFrame(loop);
+			};
+			resetBtn.onclick = () => { reset(); draw(); };
+			speedRange.oninput = (e) => { speed = Number(e.target.value); };
+
+			function generateData() {
+				data = [];
+				let t = Date.now() - (totalCandles * timeframe * 60 * 1000);
+				let price = basePrice;
+				// 横盘段：微小波动
+				for (let i=0;i<flatCount;i++){
+					const o = price*(1 + (Math.random()-0.5)*0.002);
+					const c = price*(1 + (Math.random()-0.5)*0.002);
+					const high = Math.max(o,c)*(1 + Math.random()*0.0015);
+					const low = Math.min(o,c)*(1 - Math.random()*0.0015);
+					const vol = 50 + Math.random()*30;
+					data.push({t, o, h:high, l:low, c, v:vol});
+					t += timeframe*60*1000;
+				}
+				// 飞升段：逐步放量放高
+				let cur = price;
+				for (let i=0;i<surgeCount;i++){
+					// 模拟加速上升，使用指数风格
+					const pct = Math.pow(1 + i/(surgeCount*1.5), 2) * 0.03; // 每根涨幅逐渐增大
+					const o = cur;
+					const c = cur * (1 + pct*(1 + Math.random()*0.6));
+					const high = Math.max(o,c) * (1 + Math.random()*0.03);
+					const low = Math.min(o,c) * (1 - Math.random()*0.02);
+					const vol = 300 + i*15 + Math.random()*200;
+					cur = c;
+					data.push({t, o, h:high, l:low, c, v:vol});
+					t += timeframe*60*1000;
+				}
+				// 尾段：回抽或整理
+				for (let i=0;i<tailCount;i++){
+					const o = cur;
+					const move = (Math.random()-0.5)*0.06;
+					const c = cur*(1+move);
+					const high = Math.max(o,c)*(1 + Math.random()*0.04);
+					const low = Math.min(o,c)*(1 - Math.random()*0.04);
+					const vol = 100 + Math.random()*150;
+					cur = c;
+					data.push({t, o, h:high, l:low, c, v:vol});
+					t += timeframe*60*1000;
+				}
+			}
+
+			function reset() {
+				generateData();
+				revealIndex = 0;
+				play = false;
+				playBtn.textContent = '播放';
+				xScale = 1;
+				yScaleFactor = 1;
+			}
+
+			function nicePriceRound(v) {
+				// 格式化价格显示
+				return (Math.round(v*100)/100).toFixed(2);
+			}
+
+			// 绘图主函数
+			function draw() {
+				const w = canvas.clientWidth;
+				const h = canvas.clientHeight;
+				ctx.clearRect(0,0,w,h);
+
+				// 图形区域划分
+				const padding = {left:60, right:16, top:36, bottom:48};
+				const chartW = w - padding.left - padding.right;
+				const chartH = h - padding.top - padding.bottom - 80; // 留出成交量高度
+				const volH = 80;
+
+				// 后端背景网格
+				ctx.fillStyle = "#ffffff";
+				ctx.fillRect(padding.left, padding.top, chartW, chartH + volH);
+
+				// 计算可见数据（根据 revealIndex）
+				const visibleCount = Math.min(revealIndex, data.length);
+				const visibleArray = data.slice(Math.max(0, visibleCount - Math.floor((chartW / (candleWidthPx* xScale)) ) - 10), visibleCount);
+
+				// 求当前 price range
+				let minP = Infinity, maxP = -Infinity, maxVol = 0;
+				for (const d of visibleArray) {
+					if (!d) continue;
+					minP = Math.min(minP, d.l);
+					maxP = Math.max(maxP, d.h);
+					maxVol = Math.max(maxVol, d.v);
+				}
+				if (minP === Infinity) { minP = basePrice-1; maxP = basePrice+1; }
+
+				// 动态缩放逻辑：当最近几根快速上升时自动扩大 price range（缩放），同时压缩 x 轴显示更多蜡烛
+				if (visibleArray.length > 5) {
+					const last5 = visibleArray.slice(-Math.min(visibleArray.length,8));
+					const avgDiff = (last5[last5.length-1].c / last5[0].c) - 1;
+					// 如果增长显著，增加 yScaleFactor 和减小 xScale（显示更多蜡烛）
+					const targetY = 1 + Math.min(Math.max(avgDiff*3, 0), 6); // 上升越大，yScale 越高
+					const targetX = 1 - Math.min(Math.max(avgDiff*0.8, 0), 0.7); // 上升越大，xScale 越小（压缩）
+					// 平滑过渡
+					yScaleFactor += (targetY - yScaleFactor) * 0.06 * Math.min(1, speed);
+					xScale += (targetX - xScale) * 0.06 * Math.min(1, speed);
+				} else {
+					// 恢复
+					yScaleFactor += (1 - yScaleFactor) * 0.05;
+					xScale += (1 - xScale) * 0.05;
+				}
+
+				// 扩展 price range 根据 yScaleFactor
+				const priceCenter = (maxP + minP) / 2;
+				const priceHalf = (maxP - minP)/2 * Math.max(1, yScaleFactor*1.05) + 0.5;
+				const topPrice = priceCenter + priceHalf;
+				const bottomPrice = priceCenter - priceHalf;
+
+				// 绘制水平网格和价格刻度
+				ctx.strokeStyle = "rgba(0,0,0,0.06)";
+				ctx.lineWidth = 1;
+				ctx.font = "12px Inter, Arial";
+				ctx.fillStyle = "#374151";
+				const gridLines = 6;
+				for (let i=0;i<=gridLines;i++){
+					const y = padding.top + (chartH) * (i / gridLines);
+					ctx.beginPath();
+					ctx.moveTo(padding.left, y);
+					ctx.lineTo(padding.left + chartW, y);
+					ctx.stroke();
+					// 价格文本
+					const price = topPrice - ( (topPrice - bottomPrice) * (i / gridLines) );
+					const txt = nicePriceRound(price);
+					ctx.fillText(txt, 8, y+4);
+				}
+
+				// 绘制时间和成交量背景
+				ctx.fillStyle = "rgba(0,0,0,0.03)";
+				ctx.fillRect(padding.left, padding.top + chartH, chartW, volH);
+
+				// 绘制蜡烛
+				const maxVisible = Math.floor(chartW / (candleWidthPx * xScale));
+				const startIndex = Math.max(0, visibleCount - maxVisible);
+				const slice = data.slice(startIndex, visibleCount);
+				const barW = candleWidthPx * xScale * 0.8;
+				const gap = candleWidthPx * xScale * 0.2;
+				for (let i=0;i<slice.length;i++){
+					const d = slice[i];
+					const x = padding.left + i * (barW + gap) + gap/2;
+					// price -> y
+					const py = (p) => {
+						return padding.top + ( (topPrice - p) / (topPrice - bottomPrice) ) * chartH;
+					};
+					// 颜色
+					const up = d.c >= d.o;
+					ctx.strokeStyle = up ? "#0b9b3a" : "#d23b45";
+					ctx.fillStyle = up ? "#0b9b3a" : "#d23b45";
+					// 影线
+					const yHigh = py(d.h);
+					const yLow = py(d.l);
+					ctx.beginPath();
+					ctx.moveTo(x + barW/2, yHigh);
+					ctx.lineTo(x + barW/2, yLow);
+					ctx.lineWidth = Math.max(1, 1.2 * DPR);
+					ctx.stroke();
+					// 实体
+					const yOpen = py(d.o);
+					const yClose = py(d.c);
+					const rectY = Math.min(yOpen, yClose);
+					const rectH = Math.max(1, Math.abs(yClose - yOpen));
+					ctx.fillRect(x, rectY, barW, rectH);
+				}
+
+				// 绘制时间刻度（只标注若干）
+				ctx.fillStyle = "#374151";
+				ctx.font = "11px Inter, Arial";
+				const timesToShow = 6;
+				for (let i=0;i<timesToShow;i++){
+					const idx = Math.floor(i*(slice.length-1)/(timesToShow-1));
+					if (idx < 0 || !slice[idx]) continue;
+					const ts = new Date(slice[idx].t);
+					const hh = ts.getHours().toString().padStart(2,'0');
+					const mm = ts.getMinutes().toString().padStart(2,'0');
+					const txt = hh + ":" + mm;
+					const x = padding.left + idx * (barW + gap) + barW/2;
+					ctx.fillText(txt, x - 18, padding.top + chartH + 18);
+				}
+
+				// 绘制成交量
+				for (let i=0;i<slice.length;i++){
+					const d = slice[i];
+					const x = padding.left + i * (barW + gap) + gap/2;
+					const volHpx = (d.v / (maxVol || 1)) * (volH - 8);
+					const y = padding.top + chartH + volH - volHpx - 6;
+					ctx.fillStyle = d.c >= d.o ? "rgba(11,155,58,0.9)" : "rgba(210,59,69,0.9)";
+					ctx.fillRect(x, y, barW, volHpx);
+				}
+
+				// 十字线 / 最新信息
+				if (slice.length > 0) {
+					const last = slice[slice.length-1];
+					legend.innerHTML = `${SYMBOL} &nbsp; • &nbsp; Price: ${nicePriceRound(last.c)} &nbsp; | &nbsp; Vol: ${Math.round(last.v)}`;
+				}
+			}
+
+			function loop(ts) {
+				if (!lastTimestamp) lastTimestamp = ts;
+				const dt = (ts - lastTimestamp) / 1000;
+				lastTimestamp = ts;
+				// 推进 revealIndex 根据速度
+				if (play) {
+					// 每秒 revealSpeed 根蜡烛（基准 3 根/秒，根据 speed 调整）
+					const revealSpeed = 3 * speed;
+					revealIndex += revealSpeed * dt;
+					if (revealIndex > data.length) {
+						revealIndex = data.length;
+						play = false;
+						playBtn.textContent = '播放';
+					}
+				}
+				draw();
+				if (play) requestAnimationFrame(loop);
+			}
+
+			// 初始化
+			reset();
+			// auto play a little
+			setTimeout(()=>{ play = true; playBtn.textContent='暂停'; requestAnimationFrame(loop); }, 600);
+			// resize observer
+			resize();
+		})();
+	</script>
+</body>
+</html>
