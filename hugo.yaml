@@ -1,0 +1,103 @@
+baseURL: "https://chenhusun.github.io/"
+languageCode: zh-cn
+title: "ChenHu's Blog"
+paginate: 10
+theme: PaperMod
+
+defaultContentLanguage: zh
+defaultContentLanguageInSubdir: false
+
+enableRobotsTXT: true
+buildDrafts: false
+buildFuture: false
+buildExpired: false
+
+minify:
+  disableXML: true
+  minifyOutput: true
+
+languages:
+  zh:
+    contentDir: content/zh
+    languageName: "中文"
+    weight: 1
+    taxonomies:
+      category: categories
+      tag: tags
+    params:
+      homeInfoParams:
+        Title: "你好，欢迎来到我的博客"
+        Content: "记录技术探索与思考"
+    menu:
+      main:
+        - name: 文章
+          url: /posts/
+          weight: 1
+        - name: 归档
+          url: /archives/
+          weight: 2
+        - name: 标签
+          url: /tags/
+          weight: 3
+        - name: 搜索
+          url: /search/
+          weight: 4
+
+  en:
+    contentDir: content/en
+    languageName: "English"
+    weight: 2
+    taxonomies:
+      category: categories
+      tag: tags
+    params:
+      homeInfoParams:
+        Title: "Hi, welcome to my blog"
+        Content: "Documenting tech explorations and thoughts"
+    menu:
+      main:
+        - name: Posts
+          url: /posts/
+          weight: 1
+        - name: Archives
+          url: /archives/
+          weight: 2
+        - name: Tags
+          url: /tags/
+          weight: 3
+        - name: Search
+          url: /search/
+          weight: 4
+
+params:
+  env: production
+  description: "ChenHu's personal blog about technology and life"
+  author: "ChenHu Sun"
+
+  defaultTheme: auto
+  disableThemeToggle: false
+
+  ShowShareButtons: true
+  ShowReadingTime: true
+  ShowCodeCopyButtons: true
+  ShowBreadCrumbs: true
+  ShowPostNavLinks: true
+  ShowToc: true
+  TocOpen: false
+
+  socialIcons:
+    - name: github
+      url: "https://github.com/chenhusun"
+
+  assets:
+    disableHLJS: true
+
+markup:
+  highlight:
+    noClasses: false
+
+outputs:
+  home:
+    - HTML
+    - RSS
+    - JSON
