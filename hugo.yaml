@@ -1,7 +1,8 @@
 baseURL: "https://chenhusun.github.io/"
 languageCode: zh-cn
 title: "ChenHu's Blog"
-paginate: 10
+pagination:
+  pagerSize: 10
 theme: PaperMod
 
 defaultContentLanguage: zh
